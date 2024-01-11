@@ -14,10 +14,6 @@ const Users = db.define("users", {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  avatar: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
 });
 
 // Messages.belongsTo(Users);

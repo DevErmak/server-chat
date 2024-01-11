@@ -4,12 +4,19 @@ const socketIO = require("socket.io");
 const path = require("path");
 
 const app = express();
+app.use(express.json());
+app.use((req, res, next) => {
+  res.append("Access-Control-Allow-Origin", ["*"]);
+  res.append("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
+  res.append("Access-Control-Allow-Headers", "Content-Type");
+  next();
+});
 const server = http.createServer(app);
 const io = socketIO(server);
 
-server.prependListener("request", (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-});
+// server.prependListener("request", (req, res) => {
+//   res.setHeader("Access-Control-Allow-Origin", "*");
+// });
 
 const PORT = 4000;
 
@@ -39,8 +46,37 @@ const init_BDD = async () => {
 init_BDD();
 createRelation();
 
-app.get("/", (req, res) => {
-  res.send("Hello World!");
+app.post("/", (req, res) => {
+  console.log("---------------->req.body.nickname", req.body);
+  Users.create({
+    nickname: req.body.nickName,
+  });
+  res.end();
+});
+
+app.post("/message", (req, res) => {
+  console.log("---------------->req.body.nicknameqwe", req.body);
+  Users.findOne({ where: { nickname: req.body.nickName } }).then((user) => {
+    console.log("---------------->sauser", user);
+    if (!user) return;
+    user.getRooms().then((rooms) => {
+      console.log("---------------->rooms", rooms);
+      for (room of rooms) {
+        console.log("rooorm", room);
+      }
+    });
+  });
+  res.end();
+});
+
+app.get("/users", (req, res) => {
+  Users.findAll({ raw: true })
+    .then((users) => {
+      console.log(users);
+      res.json(users);
+    })
+    .catch((err) => console.log(err));
+  // res.end();
 });
 
 io.on("connection", (socket) => {
@@ -48,16 +84,6 @@ io.on("connection", (socket) => {
 
   socket.on("chat message", async ({ username, message }) => {
     console.log("---------------->username message", username, message);
-    await Users.create({
-      nickname: username,
-      avatar: message,
-    });
-    await Rooms.create({
-      last_message: message,
-    });
-    await Messages.create({
-      message: message,
-    });
     io.emit("chat message", { username, message });
   });
 
