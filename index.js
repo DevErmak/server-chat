@@ -6,7 +6,7 @@ const path = require("path");
 const app = express();
 app.use(express.json());
 app.use((req, res, next) => {
-  res.append("Access-Control-Allow-Origin", ["*"]);
+  // res.append("Access-Control-Allow-Origin", ["*"]);
   res.append("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
   res.append("Access-Control-Allow-Headers", "Content-Type");
   next();
@@ -14,9 +14,9 @@ app.use((req, res, next) => {
 const server = http.createServer(app);
 const io = socketIO(server);
 
-// server.prependListener("request", (req, res) => {
-//   res.setHeader("Access-Control-Allow-Origin", "*");
-// });
+server.prependListener("request", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+});
 
 const PORT = 4000;
 
@@ -46,45 +46,89 @@ const init_BDD = async () => {
 init_BDD();
 createRelation();
 
-app.post("/", (req, res) => {
+app.post("/", async (req, res) => {
   console.log("---------------->req.body.nickname", req.body);
-  Users.create({
-    nickname: req.body.nickName,
-  });
-  res.end();
-});
-
-app.post("/message", (req, res) => {
-  console.log("---------------->req.body.nicknameqwe", req.body);
-  Users.findOne({ where: { nickname: req.body.nickName } }).then((user) => {
-    console.log("---------------->sauser", user);
-    if (!user) return;
-    user.getRooms().then((rooms) => {
-      console.log("---------------->rooms", rooms);
-      for (room of rooms) {
-        console.log("rooorm", room);
-      }
+  try {
+    await Users.create({
+      nickname: req.body.nickName,
     });
-  });
+  } catch {
+    res.status(500).send("user not create");
+    return;
+  }
   res.end();
 });
 
-app.get("/users", (req, res) => {
-  Users.findAll({ raw: true })
+app.post("/message", async (req, res) => {
+  console.log("---------------->req.body.nicknameqwe", req.body);
+  const user = await Users.findByPk(req.body.id);
+  if (!user) {
+    res.status(500).send("user not found");
+    return;
+  }
+  console.log("---------------->sauser", user);
+  const rooms = await user.getRooms();
+  console.log("rooorm", rooms);
+
+  if (rooms === undefined || rooms.length == 0) {
+    console.log("---------------->basd");
+    res.send("user not have room");
+    return;
+  }
+  console.log("---------------->qwess", rooms);
+  res.json(rooms);
+});
+
+app.post("/rooms", async (req, res) => {
+  const users = await Users.findAll({ where: { user_id: req.body.id } });
+  console.log("---------------->users", users);
+  if (users === undefined || users.length == 0) {
+    res.status(500).send("users not found");
+    return;
+  }
+  const room = await Rooms.create();
+  if (!room) {
+    res.status(500).send("room not create");
+    return;
+  }
+  users.map(async (user) => {
+    console.log("---------------->111user", user);
+    try {
+      await user.addRooms(room);
+    } catch {
+      res.status(500).send("room not add for users:", user);
+      return;
+    }
+  });
+  res.json(room.dataValues);
+});
+
+app.get("/users", async (req, res) => {
+  await Users.findAll({ raw: true })
     .then((users) => {
       console.log(users);
       res.json(users);
     })
     .catch((err) => console.log(err));
-  // res.end();
 });
 
 io.on("connection", (socket) => {
   console.log("A user connected");
 
-  socket.on("chat message", async ({ username, message }) => {
-    console.log("---------------->username message", username, message);
-    io.emit("chat message", { username, message });
+  socket.on("chat message", async ({ userId, roomId, message }) => {
+    console.log("---------------->username message", userId, roomId);
+    const user = await Users.findByPk(userId);
+    const room = await Rooms.findByPk(roomId);
+    console.log("---------------->useruser");
+    console.log("---------------->roomroom", room);
+    const create_message = await Messages.create({
+      message: message,
+    });
+
+    user.addMessages(create_message);
+    room.addMessages(create_message);
+
+    io.emit("chat message", { nickName: user.nickname, message });
   });
 
   socket.on("disconnect", () => {
