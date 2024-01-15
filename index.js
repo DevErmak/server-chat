@@ -49,24 +49,24 @@ createRelation();
 app.post("/", async (req, res) => {
   console.log("---------------->req.body.nickname", req.body);
   try {
-    await Users.create({
+    const userDb = await Users.create({
       nickname: req.body.nickName,
     });
+    res.send(userDb);
   } catch {
     res.status(500).send("user not create");
     return;
   }
-  res.end();
 });
 
-app.post("/message", async (req, res) => {
-  console.log("---------------->req.body.nicknameqwe", req.body);
+app.post("/rooms", async (req, res) => {
+  console.log("---------------->req.bodye", req.body);
   const user = await Users.findByPk(req.body.id);
+  console.log("---------------->user1", user);
   if (!user) {
     res.status(500).send("user not found");
     return;
   }
-  console.log("---------------->sauser", user);
   const rooms = await user.getRooms();
   console.log("rooorm", rooms);
 
@@ -79,7 +79,7 @@ app.post("/message", async (req, res) => {
   res.json(rooms);
 });
 
-app.post("/rooms", async (req, res) => {
+app.post("/createRoom", async (req, res) => {
   const users = await Users.findAll({ where: { user_id: req.body.id } });
   console.log("---------------->users", users);
   if (users === undefined || users.length == 0) {
@@ -121,12 +121,12 @@ io.on("connection", (socket) => {
     const room = await Rooms.findByPk(roomId);
     console.log("---------------->useruser");
     console.log("---------------->roomroom", room);
-    const create_message = await Messages.create({
+    const messageDb = await Messages.create({
       message: message,
     });
 
-    user.addMessages(create_message);
-    room.addMessages(create_message);
+    user.addMessages(messageDb);
+    room.addMessages(messageDb);
 
     io.emit("chat message", { nickName: user.nickname, message });
   });
