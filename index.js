@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const socketIO = require("socket.io");
 const path = require("path");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 app.use(express.json());
@@ -29,6 +30,7 @@ const Users = require("./models/users.js");
 const Rooms = require("./models/rooms.js");
 const Messages = require("./models/messages.js");
 const createRelation = require("./models/relation.js");
+const { Op } = require("sequelize");
 
 const init_BDD = async () => {
   try {
@@ -47,21 +49,44 @@ init_BDD();
 createRelation();
 
 app.post("/", async (req, res) => {
-  console.log("---------------->req.body.nickname", req.body);
+  console.log("---------------->req.body.token", req.body);
+  console.log("---------------->aaaa");
+  let userDb;
   try {
-    const userDb = await Users.create({
+    userDb = await Users.create({
       nickname: req.body.nickName,
     });
-    res.send(userDb);
   } catch {
     res.status(500).send("user not create");
     return;
   }
+  let token;
+  console.log("---------------->userDb", userDb);
+  try {
+    token = jwt.sign(
+      {
+        userId: userDb.dataValues.user_id,
+        nickName: userDb.dataValues.nickname,
+      },
+      "secretkeyappearshere",
+      { expiresIn: "1h" }
+    );
+  } catch {
+    res.status(500).send("user not create token");
+    return;
+  }
+  const decodedToken = jwt.verify(token, "secretkeyappearshere");
+  console.log("---------------->decodedToken", decodedToken);
+  res.send({
+    token: token,
+    userId: userDb.dataValues.user_id,
+    nickName: userDb.dataValues.nickname,
+  });
 });
 
 app.post("/rooms", async (req, res) => {
-  console.log("---------------->req.bodye", req.body);
-  const user = await Users.findByPk(req.body.id);
+  const decodedToken = jwt.verify(req.body.token, "secretkeyappearshere");
+  const user = await Users.findByPk(decodedToken.userId);
   console.log("---------------->user1", user);
   if (!user) {
     res.status(500).send("user not found");
@@ -103,8 +128,16 @@ app.post("/createRoom", async (req, res) => {
   res.json(room.dataValues);
 });
 
-app.get("/users", async (req, res) => {
-  await Users.findAll({ raw: true })
+app.post("/users", async (req, res) => {
+  console.log("---------------->aaa");
+  const decodedToken = jwt.verify(req.body.token, "secretkeyappearshere");
+  console.log("---------------->decodedToken", decodedToken);
+  await Users.findAll({
+    raw: true,
+    where: {
+      [Op.not]: { user_id: decodedToken.userId },
+    },
+  })
     .then((users) => {
       console.log(users);
       res.json(users);
