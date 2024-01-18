@@ -4,7 +4,7 @@ const Users = require("./users.js");
 const Rooms = require("./rooms.js");
 
 const Messages = db.define("messages", {
-  message_id: {
+  id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true,

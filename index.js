@@ -148,9 +148,14 @@ app.post("/users", async (req, res) => {
 io.on("connection", (socket) => {
   console.log("A user connected");
 
-  socket.on("chat message", async ({ userId, roomId, message }) => {
-    console.log("---------------->username message", userId, roomId);
-    const user = await Users.findByPk(userId);
+  socket.on("sent message", async ({ token, roomId, message }) => {
+    const decodedToken = jwt.verify(token, "secretkeyappearshere");
+    console.log(
+      "---------------->username message",
+      decodedToken.userId,
+      roomId
+    );
+    const user = await Users.findByPk(decodedToken.userId);
     const room = await Rooms.findByPk(roomId);
     console.log("---------------->useruser");
     console.log("---------------->roomroom", room);
@@ -161,7 +166,35 @@ io.on("connection", (socket) => {
     user.addMessages(messageDb);
     room.addMessages(messageDb);
 
-    io.emit("chat message", { nickName: user.nickname, message });
+    io.emit("sent message", {
+      nickName: user.nickname,
+      text: message,
+      id: messageDb.id,
+    });
+  });
+
+  socket.on("get prev message", async ({ roomId }) => {
+    //todo права на запрос. В общем сделать приватный запрос
+    console.log("---------------->roomIdjkjn", roomId);
+    const room = await Rooms.findByPk(roomId);
+    console.log("---------------->useruser");
+    console.log("---------------->roomroom", room);
+    const prevMessage = await room.getMessages();
+    console.log("---------------->prevMessage", prevMessage);
+    const message = await Promise.all(
+      prevMessage.map(async (message) => {
+        console.log("---------------->message.userUserId", message.userUserId);
+        const user = await Users.findByPk(message.userUserId);
+        console.log("---------------->user123", user);
+        return {
+          text: message.message,
+          id: message.id,
+          nickName: user.nickname,
+        };
+      })
+    );
+    console.log("---------------->message", message);
+    io.emit("get prev message", { message });
   });
 
   socket.on("disconnect", () => {
