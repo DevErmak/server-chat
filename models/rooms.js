@@ -9,6 +9,10 @@ const Rooms = db.define("rooms", {
     autoIncrement: true,
     allowNull: false,
   },
+  room_name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
 });
 
 // console.log("---------------->Messages", Messages);

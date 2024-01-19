@@ -51,81 +51,105 @@ createRelation();
 app.post("/", async (req, res) => {
   console.log("---------------->req.body.token", req.body);
   console.log("---------------->aaaa");
-  let userDb;
   try {
-    userDb = await Users.create({
+    console.log("---------------->aas");
+    const user = await Users.create({
       nickname: req.body.nickName,
     });
-  } catch {
-    res.status(500).send("user not create");
-    return;
-  }
-  let token;
-  console.log("---------------->userDb", userDb);
-  try {
-    token = jwt.sign(
+    console.log("---------------->userDb", user);
+    const token = jwt.sign(
       {
-        userId: userDb.dataValues.user_id,
-        nickName: userDb.dataValues.nickname,
+        userId: user.dataValues.user_id,
+        nickName: user.dataValues.nickname,
       },
       "secretkeyappearshere",
       { expiresIn: "1h" }
     );
-  } catch {
-    res.status(500).send("user not create token");
-    return;
+    res.send({
+      token: token,
+      userId: user.dataValues.user_id,
+      nickName: user.dataValues.nickname,
+    });
+  } catch (err) {
+    res.status(500).send(`user not create ${err}`);
   }
-  const decodedToken = jwt.verify(token, "secretkeyappearshere");
-  console.log("---------------->decodedToken", decodedToken);
-  res.send({
-    token: token,
-    userId: userDb.dataValues.user_id,
-    nickName: userDb.dataValues.nickname,
-  });
 });
 
-app.post("/rooms", async (req, res) => {
-  const decodedToken = jwt.verify(req.body.token, "secretkeyappearshere");
-  const user = await Users.findByPk(decodedToken.userId);
-  console.log("---------------->user1", user);
-  if (!user) {
-    res.status(500).send("user not found");
-    return;
+// app.post("/rooms", async (req, res) => {
+//   const decodedToken = jwt.verify(req.body.token, "secretkeyappearshere");
+//   const user = await Users.findByPk(decodedToken.userId);
+//   console.log("---------------->user1", user);
+//   if (!user) {
+//     res.status(500).send("user not found");
+//     return;
+//   }
+//   const rooms = await user.getRooms();
+//   console.log("rooorm", rooms);
+
+//   if (rooms === undefined || rooms.length == 0) {
+//     console.log("---------------->basd");
+//     res.send("user not have room");
+//     return;
+//   }
+//   console.log("---------------->qwess", rooms);
+//   res.json(rooms);
+// });
+
+// app.post("/createRoom", async (req, res) => {
+//   const users = await Users.findAll({ where: { user_id: req.body.id } });
+//   console.log("---------------->users", users);
+//   if (users === undefined || users.length == 0) {
+//     res.status(500).send("users not found");
+//     return;
+//   }
+//   const room = await Rooms.create();
+//   if (!room) {
+//     res.status(500).send("room not create");
+//     return;
+//   }
+//   users.map(async (user) => {
+//     console.log("---------------->111user", user);
+//     try {
+//       await user.addRooms(room);
+//     } catch {
+//       res.status(500).send("room not add for users:", user);
+//       return;
+//     }
+//   });
+//   res.json(room.dataValues);
+// });
+
+app.post("/createRoom", async (req, res) => {
+  try {
+    console.log("---------------->req.body", req.body);
+    const room = await Rooms.create({
+      room_name: req.body.roomName,
+    });
+    console.log("---------------->aqqaaa");
+    res.json(room);
+  } catch {
+    res.status(500).send("room not create");
   }
-  const rooms = await user.getRooms();
+});
+
+app.get("/rooms", async (req, res) => {
+  // const decodedToken = jwt.verify(req.body.token, "secretkeyappearshere");
+  // const user = await Users.findByPk(decodedToken.userId);
+  // console.log("---------------->user1", user);
+  // if (!user) {
+  // res.status(500).send("user not found");
+  // return;
+  // }
+  const rooms = await Rooms.findAll();
   console.log("rooorm", rooms);
 
   if (rooms === undefined || rooms.length == 0) {
     console.log("---------------->basd");
-    res.send("user not have room");
+    res.send("not have room");
     return;
   }
   console.log("---------------->qwess", rooms);
   res.json(rooms);
-});
-
-app.post("/createRoom", async (req, res) => {
-  const users = await Users.findAll({ where: { user_id: req.body.id } });
-  console.log("---------------->users", users);
-  if (users === undefined || users.length == 0) {
-    res.status(500).send("users not found");
-    return;
-  }
-  const room = await Rooms.create();
-  if (!room) {
-    res.status(500).send("room not create");
-    return;
-  }
-  users.map(async (user) => {
-    console.log("---------------->111user", user);
-    try {
-      await user.addRooms(room);
-    } catch {
-      res.status(500).send("room not add for users:", user);
-      return;
-    }
-  });
-  res.json(room.dataValues);
 });
 
 app.post("/users", async (req, res) => {
@@ -194,7 +218,7 @@ io.on("connection", (socket) => {
       })
     );
     console.log("---------------->message", message);
-    io.emit("get prev message", { message });
+    io.emit("get prev message", message);
   });
 
   socket.on("disconnect", () => {
