@@ -3,13 +3,13 @@ const db = require("../db.js");
 const Messages = require("./messages.js");
 
 const Rooms = db.define("rooms", {
-  room_id: {
+  id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true,
     allowNull: false,
   },
-  room_name: {
+  name: {
     type: DataTypes.STRING,
     allowNull: false,
   },

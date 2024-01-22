@@ -59,7 +59,7 @@ app.post("/", async (req, res) => {
     console.log("---------------->userDb", user);
     const token = jwt.sign(
       {
-        userId: user.dataValues.user_id,
+        userId: user.dataValues.id,
         nickName: user.dataValues.nickname,
       },
       "secretkeyappearshere",
@@ -67,7 +67,7 @@ app.post("/", async (req, res) => {
     );
     res.send({
       token: token,
-      userId: user.dataValues.user_id,
+      userId: user.dataValues.id,
       nickName: user.dataValues.nickname,
     });
   } catch (err) {
@@ -119,38 +119,38 @@ app.post("/", async (req, res) => {
 //   res.json(room.dataValues);
 // });
 
-app.post("/createRoom", async (req, res) => {
-  try {
-    console.log("---------------->req.body", req.body);
-    const room = await Rooms.create({
-      room_name: req.body.roomName,
-    });
-    console.log("---------------->aqqaaa");
-    res.json(room);
-  } catch {
-    res.status(500).send("room not create");
-  }
-});
+// app.post("/createRoom", async (req, res) => {
+//   try {
+//     console.log("---------------->req.body", req.body);
+//     const room = await Rooms.create({
+//       name: req.body.roomName,
+//     });
+//     console.log("---------------->aqqaaa");
+//     res.json(room);
+//   } catch {
+//     res.status(500).send("room not create");
+//   }
+// });
 
-app.get("/rooms", async (req, res) => {
-  // const decodedToken = jwt.verify(req.body.token, "secretkeyappearshere");
-  // const user = await Users.findByPk(decodedToken.userId);
-  // console.log("---------------->user1", user);
-  // if (!user) {
-  // res.status(500).send("user not found");
-  // return;
-  // }
-  const rooms = await Rooms.findAll();
-  console.log("rooorm", rooms);
+// app.get("/rooms", async (req, res) => {
+//   // const decodedToken = jwt.verify(req.body.token, "secretkeyappearshere");
+//   // const user = await Users.findByPk(decodedToken.userId);
+//   // console.log("---------------->user1", user);
+//   // if (!user) {
+//   // res.status(500).send("user not found");
+//   // return;
+//   // }
+//   const rooms = await Rooms.findAll();
+//   console.log("rooorm", rooms);
 
-  if (rooms === undefined || rooms.length == 0) {
-    console.log("---------------->basd");
-    res.send("not have room");
-    return;
-  }
-  console.log("---------------->qwess", rooms);
-  res.json(rooms);
-});
+//   if (rooms === undefined || rooms.length == 0) {
+//     console.log("---------------->basd");
+//     res.send("not have room");
+//     return;
+//   }
+//   console.log("---------------->qwess", rooms);
+//   res.json(rooms);
+// });
 
 app.post("/users", async (req, res) => {
   console.log("---------------->aaa");
@@ -159,7 +159,7 @@ app.post("/users", async (req, res) => {
   await Users.findAll({
     raw: true,
     where: {
-      [Op.not]: { user_id: decodedToken.userId },
+      [Op.not]: { id: decodedToken.userId },
     },
   })
     .then((users) => {
@@ -172,33 +172,34 @@ app.post("/users", async (req, res) => {
 io.on("connection", (socket) => {
   console.log("A user connected");
 
-  socket.on("sent message", async ({ token, roomId, message }) => {
-    const decodedToken = jwt.verify(token, "secretkeyappearshere");
-    console.log(
-      "---------------->username message",
-      decodedToken.userId,
-      roomId
-    );
+  socket.on("send message", async (data) => {
+    console.log("---------------->!!!!data", data);
+    socket.join(data.roomId);
+    const decodedToken = jwt.verify(data.token, "secretkeyappearshere");
+    console.log("---------------->username message", decodedToken, data.roomId);
     const user = await Users.findByPk(decodedToken.userId);
-    const room = await Rooms.findByPk(roomId);
-    console.log("---------------->useruser");
+    const room = await Rooms.findByPk(data.roomId);
+    console.log("---------------->useruser", user);
     console.log("---------------->roomroom", room);
     const messageDb = await Messages.create({
-      message: message,
+      message: data.message,
     });
-
+    console.log("---------------->messageDb", messageDb);
+    console.log("---------------->room.id", room.id);
     user.addMessages(messageDb);
     room.addMessages(messageDb);
 
-    io.emit("sent message", {
+    io.to(data.roomId).emit("send message", {
       nickName: user.nickname,
-      text: message,
+      text: data.message,
       id: messageDb.id,
     });
   });
 
   socket.on("get prev message", async ({ roomId }) => {
     //todo права на запрос. В общем сделать приватный запрос
+    socket.join(roomId);
+
     console.log("---------------->roomIdjkjn", roomId);
     const room = await Rooms.findByPk(roomId);
     console.log("---------------->useruser");
@@ -206,19 +207,42 @@ io.on("connection", (socket) => {
     const prevMessage = await room.getMessages();
     console.log("---------------->prevMessage", prevMessage);
     const message = await Promise.all(
-      prevMessage.map(async (message) => {
-        console.log("---------------->message.userUserId", message.userUserId);
-        const user = await Users.findByPk(message.userUserId);
+      prevMessage.map(async (msg) => {
+        console.log("---------------->message22", msg);
+        console.log("---------------->message.userUserId", msg.userId);
+        const user = await Users.findByPk(msg.userId);
         console.log("---------------->user123", user);
         return {
-          text: message.message,
-          id: message.id,
+          text: msg.message,
+          id: msg.id,
           nickName: user.nickname,
         };
       })
     );
     console.log("---------------->message", message);
-    io.emit("get prev message", message);
+    io.to(roomId).emit("get prev message", message);
+  });
+
+  socket.on("get rooms", async () => {
+    const rooms = await Rooms.findAll();
+    console.log("rooorm", rooms);
+
+    if (rooms === undefined || rooms.length == 0) {
+      console.log("---------------->basd");
+      io.emit("get rooms", "not have room");
+      return;
+    }
+    console.log("---------------->qwess", rooms);
+    io.emit("get rooms", rooms);
+  });
+
+  socket.on("add room", async (data) => {
+    console.log("---------------->req.body", data.roomName);
+    const room = await Rooms.create({
+      name: data.roomName,
+    });
+    console.log("---------------->qwess", room);
+    io.emit("add room", room);
   });
 
   socket.on("disconnect", () => {
