@@ -3,9 +3,15 @@ const http = require("http");
 const socketIO = require("socket.io");
 const path = require("path");
 const jwt = require("jsonwebtoken");
+const formidable = require("express-formidable");
 
 const app = express();
 app.use(express.json());
+// app.use(formidable());
+// app.use(express.json()); // Used to parse JSON bodies
+app.use(express.urlencoded()); // Parse URL-encoded bodies using query-string library
+// or
+// app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
   // res.append("Access-Control-Allow-Origin", ["*"]);
   res.append("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
@@ -167,6 +173,13 @@ app.post("/users", async (req, res) => {
       res.json(users);
     })
     .catch((err) => console.log(err));
+});
+
+app.post("/audio", async (req, res) => {
+  console.log("---------------->aaa", req.body);
+  // console.log("---------------->aaa", req.body.audio.getAll("audio"));
+
+  res.end();
 });
 
 io.on("connection", (socket) => {
