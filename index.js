@@ -2,22 +2,47 @@ const express = require("express");
 const http = require("http");
 const socketIO = require("socket.io");
 const path = require("path");
+const fs = require("fs");
 const jwt = require("jsonwebtoken");
-const formidable = require("express-formidable");
+
+// const multer = require("multer");
+// const upload = multer({
+//   dest: "files/", // Location where files will be saved
+// });
+
+// const formidable = require("formidable");
+// const formidableMiddleware = require("express-formidable");
 
 const app = express();
+
+// const formidable = require("formidable");
+
 app.use(express.json());
+
+const multer = require("multer");
+const upload = multer({ dest: __dirname + "/files/" });
+
+// const upload = multer({ dest: "uploads/" });
+
+// app.use(formidableMiddleware());
+
+// const Busboy = require("busboy");
+// const Busboy = require("busboy");
+
+// app.use(express.bodyParser());
 // app.use(formidable());
 // app.use(express.json()); // Used to parse JSON bodies
-app.use(express.urlencoded()); // Parse URL-encoded bodies using query-string library
+// app.use(express.urlencoded()); // Parse URL-encoded bodies using query-string library
 // or
 // app.use(express.urlencoded({ extended: true }));
+
 app.use((req, res, next) => {
   // res.append("Access-Control-Allow-Origin", ["*"]);
   res.append("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
   res.append("Access-Control-Allow-Headers", "Content-Type");
   next();
 });
+
 const server = http.createServer(app);
 const io = socketIO(server);
 
@@ -37,6 +62,7 @@ const Rooms = require("./models/rooms.js");
 const Messages = require("./models/messages.js");
 const createRelation = require("./models/relation.js");
 const { Op } = require("sequelize");
+const isBuffer = require("is-buffer");
 
 const init_BDD = async () => {
   try {
@@ -175,11 +201,83 @@ app.post("/users", async (req, res) => {
     .catch((err) => console.log(err));
 });
 
-app.post("/audio", async (req, res) => {
-  console.log("---------------->aaa", req.body);
-  // console.log("---------------->aaa", req.body.audio.getAll("audio"));
+// const storage = multer.diskStorage({
+//   destination: function (req, file, callback) {
+//     callback(null, __dirname + "/files");
+//   },
+//   filename: function (req, file, callback) {
+//     // You can write your own logic to define the filename here (before passing it into the callback), e.g:
+//     console.log(file.originalname); // User-defined filename is available
+//     const filename = `file_${crypto.randomUUID()}`; // Create custom filename (crypto.randomUUID available in Node 19.0.0+ only)
+//     callback(null, filename);
+//   },
+// });
+// const upload = multer({
+//   storage: storage,
+//   limits: {
+//     fileSize: 1048576, // Defined in bytes (1 Mb)
+//   },
+// });
+app.post("/audio", upload.single("audio"), (req, res) => {
+  console.log("---------------->req.body", req.body);
+  console.log("File:", req.file);
 
-  res.end();
+  if (!req.file) {
+    return res.status(400).send("No file was uploaded.");
+  }
+
+  // Доступ к данным файла
+  console.log("File:", req.file);
+
+  // Возвращаем успешный ответ
+  res.send("File uploaded successfully.");
+
+  // console.log("---------------->wqr");
+  // console.log(req.body);
+  // res.end();
+  // const form = new formidable.IncomingForm();
+  // form.parse(req, function (err, fields, files) {
+  //   let oldPath = files.profilePic.filepath;
+  //   let newPath = path.join(__dirname, "files") + "/" + files.profilePic.name;
+  //   console.log("---------------->newPath", newPath);
+  //   let rawData = fs.readFileSync(oldPath);
+  //   fs.writeFile(newPath, rawData, function (err) {
+  //     if (err) console.log(err);
+  //     return res.send("Successfully uploaded");
+  //   });
+  // });
+  // const form = new formidable.IncomingForm();
+  // form.parse(req, (err, fields, files) => {
+  //   console.log(
+  //     '---------------->__dirname + "/files/qwe.wav',
+  //     __dirname + "/files/qwe.wav"
+  //   );
+  //   if (err) {
+  //     console.log(err);
+  //     return res
+  //       .status(500)
+  //       .json({ error: "Произошла ошибка при загрузке файла" });
+  //   }
+  //   // Проверяем, что загруженный файл формата WAV
+  //   const uploadedFile = files.file;
+  //   if (uploadedFile && uploadedFile.type === "audio/wav") {
+  //     // Путь, куда сохранить файл на сервере
+  //     const filePath = __dirname + "/files/qwe.wav";
+  //     console.log("---------------->filePath", filePath);
+  //     // Перемещаем файл из временной папки в папку на сервере
+  //     fs.rename(uploadedFile.path, filePath, (err) => {
+  //       if (err) {
+  //         console.log(err);
+  //         return res
+  //           .status(500)
+  //           .json({ error: "Произошла ошибка при сохранении файла" });
+  //       }
+  //       return res.status(200).json({ message: "Файл успешно сохранен" });
+  //     });
+  //   } else {
+  //     return res.status(400).json({ error: "Некорректный формат файла" });
+  //   }
+  // });
 });
 
 io.on("connection", (socket) => {
@@ -194,9 +292,25 @@ io.on("connection", (socket) => {
     const room = await Rooms.findByPk(data.roomId);
     console.log("---------------->useruser", user);
     console.log("---------------->roomroom", room);
-    const messageDb = await Messages.create({
-      message: data.message,
-    });
+    let messageDb;
+    if (isBuffer(data.message)) {
+      const blob = new Blob(data.message);
+      console.log("---------------->toBlob", blob);
+      try {
+        messageDb = await Messages.create({
+          voice: blob,
+          message: null,
+        });
+      } catch (err) {
+        console.log("---------------->errr", err);
+      }
+    } else {
+      console.log("---------------->toText");
+      messageDb = await Messages.create({
+        message: data.message,
+        voice: null,
+      });
+    }
     console.log("---------------->messageDb", messageDb);
     console.log("---------------->room.id", room.id);
     user.addMessages(messageDb);
@@ -257,6 +371,34 @@ io.on("connection", (socket) => {
     console.log("---------------->qwess", room);
     io.emit("add room", room);
   });
+
+  // socket.on("send voice message", async (data) => {
+  //   console.log("---------------->!!!!data", data);
+  //   socket.join(data.roomId);
+  //   const decodedToken = jwt.verify(data.token, "secretkeyappearshere");
+  //   console.log("---------------->username message", decodedToken, data.roomId);
+
+  //   const user = await Users.findByPk(decodedToken.userId);
+  //   const room = await Rooms.findByPk(data.roomId);
+  //   console.log("---------------->useruser", user);
+  //   console.log("---------------->roomroom", room);
+
+  //   console.log("Form data received:", data.message);
+
+  //   // const messageDb = await Messages.create({
+  //   //   message: data.message,
+  //   // });
+  //   // console.log("---------------->messageDb", messageDb);
+  //   // console.log("---------------->room.id", room.id);
+  //   // user.addMessages(messageDb);
+  //   // room.addMessages(messageDb);
+
+  //   io.to(data.roomId).emit("send voice message", {
+  //     nickName: user.nickname,
+  //     formData: data.message,
+  //     id: messageDb.id,
+  //   });
+  // });
 
   socket.on("disconnect", () => {
     console.log("A user disconnected");

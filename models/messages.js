@@ -11,8 +11,10 @@ const Messages = db.define("messages", {
     allowNull: false,
   },
   message: {
-    type: DataTypes.TEXT,
-    allowNull: false,
+    type: DataTypes.TEXT || DataTypes.BLOB,
+  },
+  voice: {
+    type: DataTypes.BLOB,
   },
 });
 module.exports = Messages;
