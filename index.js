@@ -294,12 +294,12 @@ io.on("connection", (socket) => {
     console.log("---------------->roomroom", room);
     let messageDb;
     if (isBuffer(data.message)) {
-      console.log("---------------->data.message", data.message);
-      // const blob = new Blob(data.message, {
-      //   type: "audio/wav",
-      // });
-      // console.log("---------------->toBlob", blob);
       try {
+        console.log("---------------->data.message", data.message);
+        // const blob = new Blob([new Uint8Array([data.message]).buffer], {
+        //   type: "audio/wav",
+        // });
+        // console.log("---------------->toBlob", blob);
         messageDb = await Messages.create({
           voice: data.message,
           message: null,
