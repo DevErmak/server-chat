@@ -294,11 +294,14 @@ io.on("connection", (socket) => {
     console.log("---------------->roomroom", room);
     let messageDb;
     if (isBuffer(data.message)) {
-      const blob = new Blob([data.message], { type: "audio/webm" });
-      console.log("---------------->toBlob", blob);
+      console.log("---------------->data.message", data.message);
+      // const blob = new Blob(data.message, {
+      //   type: "audio/wav",
+      // });
+      // console.log("---------------->toBlob", blob);
       try {
         messageDb = await Messages.create({
-          voice: blob,
+          voice: data.message,
           message: null,
         });
       } catch (err) {
@@ -315,18 +318,19 @@ io.on("connection", (socket) => {
     console.log("---------------->room.id", room.id);
     user.addMessages(messageDb);
     room.addMessages(messageDb);
-
-    io.to(data.roomId).emit("send message", {
+    const message = {
       nickName: user.nickname,
       text: data.message,
       id: messageDb.id,
-    });
+    };
+    console.log("---------------->1123message", message);
+    io.to(data.roomId).emit("send message", message);
   });
 
   socket.on("get prev message", async ({ roomId }) => {
     //todo права на запрос. В общем сделать приватный запрос
     socket.join(roomId);
-
+    console.log("---------------->getprevmsg");
     console.log("---------------->roomIdjkjn", roomId);
     const room = await Rooms.findByPk(roomId);
     console.log("---------------->useruser");
@@ -339,14 +343,15 @@ io.on("connection", (socket) => {
         console.log("---------------->message.userUserId", msg.userId);
         const user = await Users.findByPk(msg.userId);
         console.log("---------------->user123", user);
+
         return {
-          text: msg.message,
+          text: msg.message || msg.voice,
           id: msg.id,
           nickName: user.nickname,
         };
       })
     );
-    console.log("---------------->message", message);
+    console.log("---------------->555message", message);
     io.to(roomId).emit("get prev message", message);
   });
 
