@@ -294,7 +294,7 @@ io.on("connection", (socket) => {
     console.log("---------------->roomroom", room);
     let messageDb;
     if (isBuffer(data.message)) {
-      const blob = new Blob(data.message);
+      const blob = new Blob([data.message], { type: "audio/webm" });
       console.log("---------------->toBlob", blob);
       try {
         messageDb = await Messages.create({
