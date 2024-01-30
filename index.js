@@ -322,6 +322,7 @@ io.on("connection", (socket) => {
       nickName: user.nickname,
       text: data.message,
       id: messageDb.id,
+      date: messageDb.createdAt,
     };
     console.log("---------------->1123message", message);
     io.to(data.roomId).emit("send message", message);
@@ -348,6 +349,7 @@ io.on("connection", (socket) => {
           text: msg.message || msg.voice,
           id: msg.id,
           nickName: user.nickname,
+          date: msg.createdAt,
         };
       })
     );
