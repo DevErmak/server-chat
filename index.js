@@ -343,7 +343,7 @@ io.on("connection", (socket) => {
         roomId: roomId,
       },
       include: Users,
-      order: [["createdAt", "ASC"]],
+      order: [["createdAt", "DESC"]],
     });
 
     console.log("---------------->prevMessage", prevMessage);
