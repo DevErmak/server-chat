@@ -284,18 +284,13 @@ io.on("connection", (socket) => {
   console.log("A user connected");
 
   socket.on("send message", async (data) => {
-    console.log("---------------->!!!!data", data);
     socket.join(data.roomId);
     const decodedToken = jwt.verify(data.token, "secretkeyappearshere");
-    console.log("---------------->username message", decodedToken, data.roomId);
     const user = await Users.findByPk(decodedToken.userId);
     const room = await Rooms.findByPk(data.roomId);
-    console.log("---------------->useruser", user);
-    console.log("---------------->roomroom", room);
     let messageDb;
     if (isBuffer(data.message)) {
       try {
-        console.log("---------------->data.message", data.message);
         // const blob = new Blob([new Uint8Array([data.message]).buffer], {
         //   type: "audio/wav",
         // });
@@ -308,36 +303,24 @@ io.on("connection", (socket) => {
         console.log("---------------->errr", err);
       }
     } else {
-      console.log("---------------->toText");
       messageDb = await Messages.create({
         message: data.message,
         voice: null,
       });
     }
-    console.log("---------------->messageDb", messageDb);
-    console.log("---------------->room.id", room.id);
     user.addMessages(messageDb);
     room.addMessages(messageDb);
-    console.log("---------------->!data.message", data.message);
-    console.log("---------------->!messageDb.message", messageDb.message);
     const message = {
       nickName: user.nickname,
       text: data.message,
       id: messageDb.id,
       date: messageDb.createdAt,
     };
-    console.log("---------------->1123message", message);
     io.to(data.roomId).emit("send message", message);
   });
 
   socket.on("get prev message", async ({ roomId }) => {
-    //todo права на запрос. В общем сделать приватный запрос
     socket.join(roomId);
-    // console.log("---------------->getprevmsg");
-    // console.log("---------------->roomIdjkjn", roomId);
-    const room = await Rooms.findByPk(roomId);
-    // console.log("---------------->useruser");
-    // console.log("---------------->roomroom", room);
     const prevMessage = await Messages.findAll({
       where: {
         roomId: roomId,
@@ -346,7 +329,6 @@ io.on("connection", (socket) => {
       order: [["createdAt", "DESC"]],
     });
 
-    console.log("---------------->prevMessage", prevMessage);
     const message = prevMessage.map((msg) => {
       return {
         text: msg.message || msg.voice,
@@ -356,30 +338,58 @@ io.on("connection", (socket) => {
       };
     });
 
-    console.log("---------------->555message", message);
     io.to(roomId).emit("get prev message", message);
   });
 
   socket.on("get rooms", async () => {
     const rooms = await Rooms.findAll();
-    console.log("rooorm", rooms);
 
     if (rooms === undefined || rooms.length == 0) {
-      console.log("---------------->basd");
       io.emit("get rooms", "not have room");
       return;
     }
-    console.log("---------------->qwess", rooms);
     io.emit("get rooms", rooms);
   });
 
   socket.on("add room", async (data) => {
-    console.log("---------------->req.body", data.roomName);
     const room = await Rooms.create({
       name: data.roomName,
     });
-    console.log("---------------->qwess", room);
     io.emit("add room", room);
+  });
+
+  socket.on("get name room", async ({ roomId }) => {
+    const room = await Rooms.findByPk(roomId);
+
+    if (room === undefined || room.length == 0) {
+      io.emit("get name room", "not have room");
+      return;
+    }
+    io.emit("get name room", room.name);
+  });
+
+  socket.on("get user in room", async ({ roomId }) => {
+    console.log("---------------->roomId", roomId);
+
+    const clientsInRoom = await io.in(roomId).allSockets();
+    console.log("---------------->clientsInRoom", clientsInRoom);
+
+    // console.log("---------------->io.sockets.adapter", io.sockets.adapter);
+    // console.log(
+    //   "---------------->io.sockets.adapter.rooms.get",
+    //   io.sockets.adapter.rooms.get
+    // );
+    // const clients = io.sockets.adapter.rooms.get(roomId);
+    // console.log("---------------->clients", clients);
+    const room = await Rooms.findByPk(roomId);
+    console.log("rooorm", room);
+
+    if (room === undefined || room.length == 0) {
+      console.log("---------------->basd");
+      io.emit("get user in room", "not have user");
+      return;
+    }
+    io.emit("get user in room", []);
   });
 
   // socket.on("send voice message", async (data) => {
