@@ -342,37 +342,88 @@ io.on("connection", (socket) => {
   });
 
   socket.on("get rooms", async () => {
+    // socket.join("rooms");
     const rooms = await Rooms.findAll();
 
     if (rooms === undefined || rooms.length == 0) {
       io.emit("get rooms", "not have room");
       return;
     }
+    // io.to("rooms").emit("get rooms", rooms);
     io.emit("get rooms", rooms);
   });
 
   socket.on("add room", async (data) => {
+    // socket.join("rooms");
     const room = await Rooms.create({
       name: data.roomName,
     });
     io.emit("add room", room);
+    // io.to("rooms").emit("get rooms", rooms);
   });
 
   socket.on("get name room", async ({ roomId }) => {
+    socket.join(roomId);
+
     const room = await Rooms.findByPk(roomId);
 
     if (room === undefined || room.length == 0) {
       io.emit("get name room", "not have room");
       return;
     }
-    io.emit("get name room", room.name);
+    io.to(roomId).emit("get name room", room.name);
   });
 
-  socket.on("get user in room", async ({ roomId }) => {
-    console.log("---------------->roomId", roomId);
+  socket.on("get user in room", async (data) => {
+    console.log("---------------->data", data);
+    console.log("---------------->token", data.token);
+    const decodedToken = jwt.verify(data.token, "secretkeyappearshere");
+    console.log("---------------->decodedToken", decodedToken);
+    console.log("---------------->roomId", data.roomId);
+    socket.join(data.roomId);
+    socket.name = decodedToken.nickName;
+    const users = [];
+    // const rooms = io.sockets.adapter.rooms;
+    // console.log(
+    //   "---------------->io.sockets.adapter.rooms.get(roomId)",
+    //   io.sockets.adapter.rooms.get(roomId)
+    // );
+    for (let room of io.sockets.adapter.rooms.get(data.roomId)) {
+      console.log(
+        "---------------->io.sockets.adapter.nsp.sockets.get(room).name",
+        io.sockets.adapter.nsp.sockets.get(room).name
+      );
+      users.push(io.sockets.adapter.nsp.sockets.get(room).name);
+    }
+    // console.log(
+    //   "---------------->io.sockets.adapter.nsp.sockets",
+    //   io.sockets.adapter.nsp.sockets
+    // );
+    // io.sockets.adapter.nsp.sockets.map((s) =>
+    //   console.log("---------------->s", s)
+    // );
 
-    const clientsInRoom = await io.in(roomId).allSockets();
-    console.log("---------------->clientsInRoom", clientsInRoom);
+    // for (const socketId in io.sockets.adapter.nsp.sockets) {
+    //   const socket = io.sockets.adapter.nsp.sockets[socketId];
+    //   console.log("---------------->socket", socket);
+    //   users.push(socket.name);
+    // }
+    // console.log("---------------->roomsss", rooms);
+    // const clientsInRoom = await io.in(roomId).allSockets();
+    // console.log("---------------->clientsInRoom", clientsInRoom);
+
+    // if (rooms) {
+    //   const sockets = rooms.room.sockets;
+    //   console.log("---------------->sockets!!!", sockets);
+
+    //   for (const socketId in sockets) {
+    //     const socket = io.sockets.sockets[socketId];
+    //     users.push(socket.name);
+    //   }
+    // }
+    console.log("---------------->users", users);
+    // const clientsInRoom = await io.in(roomId).allSockets();
+    // console.log("---------------->clientsInRoom", clientsInRoom);
 
     // console.log("---------------->io.sockets.adapter", io.sockets.adapter);
     // console.log(
@@ -381,15 +432,15 @@ io.on("connection", (socket) => {
     // );
     // const clients = io.sockets.adapter.rooms.get(roomId);
     // console.log("---------------->clients", clients);
-    const room = await Rooms.findByPk(roomId);
-    console.log("rooorm", room);
+    // const room = await Rooms.findByPk(roomId);
+    // // console.log("rooorm", room);
 
-    if (room === undefined || room.length == 0) {
-      console.log("---------------->basd");
-      io.emit("get user in room", "not have user");
-      return;
-    }
-    io.emit("get user in room", []);
+    // if (room === undefined || room.length == 0) {
+    //   console.log("---------------->basd");
+    //   io.emit("get user in room", "not have user");
+    //   return;
+    // }
+    io.to(data.roomId).emit("get user in room", users);
   });
 
   // socket.on("send voice message", async (data) => {
