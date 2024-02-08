@@ -375,11 +375,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("get user in room", async (data) => {
-    console.log("---------------->data", data);
-    console.log("---------------->token", data.token);
+    // console.log("---------------->data", data);
+    // console.log("---------------->token", data.token);
     const decodedToken = jwt.verify(data.token, "secretkeyappearshere");
-    console.log("---------------->decodedToken", decodedToken);
-    console.log("---------------->roomId", data.roomId);
+    // console.log("---------------->decodedToken", decodedToken);
+    // console.log("---------------->roomId", data.roomId);
     socket.join(data.roomId);
     socket.name = decodedToken.nickName;
     const users = [];
@@ -388,13 +388,25 @@ io.on("connection", (socket) => {
     //   "---------------->io.sockets.adapter.rooms.get(roomId)",
     //   io.sockets.adapter.rooms.get(roomId)
     // );
-    for (let room of io.sockets.adapter.rooms.get(data.roomId)) {
-      console.log(
-        "---------------->io.sockets.adapter.nsp.sockets.get(room).name",
-        io.sockets.adapter.nsp.sockets.get(room).name
-      );
-      users.push(io.sockets.adapter.nsp.sockets.get(room).name);
-    }
+
+    const usersSockets = [...io.sockets.adapter.rooms.get(data.roomId)];
+    console.log("---------------->usersSockets", usersSockets);
+    // console.log(
+    //   "---------------->io.sockets.adapter.nsp.sockets",
+    //   io.sockets.adapter.nsp.sockets
+    // );
+
+    usersSockets.map((userSocket) =>
+      users.push(io.sockets.adapter.nsp.sockets.get(userSocket).name)
+    );
+
+    // for (let room of io.sockets.adapter.rooms.get(data.roomId)) {
+    //   // console.log(
+    //   //   "---------------->io.sockets.adapter.nsp.sockets.get(room).name",
+    //   //   io.sockets.adapter.nsp.sockets.get(room).name
+    //   // );
+    //   users.push(io.sockets.adapter.nsp.sockets.get(room).name);
+    // }
     // console.log(
     //   "---------------->io.sockets.adapter.nsp.sockets",
     //   io.sockets.adapter.nsp.sockets
@@ -421,7 +433,7 @@ io.on("connection", (socket) => {
     //     users.push(socket.name);
     //   }
     // }
-    console.log("---------------->users", users);
+    // console.log("---------------->users", users);
     // const clientsInRoom = await io.in(roomId).allSockets();
     // console.log("---------------->clientsInRoom", clientsInRoom);
 
@@ -441,6 +453,49 @@ io.on("connection", (socket) => {
     //   return;
     // }
     io.to(data.roomId).emit("get user in room", users);
+  });
+  socket.on("user leave room", async (data) => {
+    // console.log("---------------->data", data);
+    // console.log("---------------->token", data.token);
+    const decodedToken = jwt.verify(data.token, "secretkeyappearshere");
+    // console.log("---------------->decodedToken", decodedToken);
+    // console.log("---------------->roomId", data.roomId);
+    // socket.join(data.roomId);
+    // socket.leave(data.roomId);
+    // socket.name = decodedToken.nickName;
+    const users = [];
+    // console.log(
+    //   "---------------->io.sockets.adapter.rooms",
+    //   io.sockets.adapter.rooms
+    // );
+    // console.log("---------------->socket.id", socket.id);
+    // const mapUser = new Map(
+    //   [...io.sockets.adapter.rooms].filter(([user]) => user !== data.roomId)
+    // );
+    const usersSockets = [...io.sockets.adapter.rooms.get(data.roomId)].filter(
+      (socketId) => socketId !== socket.id
+    );
+    // console.log(
+    //   "---------------->io.sockets.adapter.nsp.sockets",
+    //   io.sockets.adapter.nsp.sockets
+    // );
+
+    usersSockets.map((userSocket) =>
+      users.push(io.sockets.adapter.nsp.sockets.get(userSocket).name)
+    );
+    // for (let room of io.sockets.adapter.rooms.get(socket.id)) {
+    //   // console.log(
+    //   //   "---------------->io.sockets.adapter.nsp.sockets",
+    //   //   io.sockets.adapter.nsp.sockets
+    //   // );
+    //   // console.log(
+    //   //   "---------------->io.sockets.adapter.nsp.sockets.get(room).name",
+    //   //   io.sockets.adapter.nsp.sockets.get(room).name
+    //   // );
+    //   users.push(io.sockets.adapter.nsp.sockets.get(room).name);
+    // }
+    // console.log("---------------->discont users", users);
+    io.to(data.roomId).emit("user leave room", users);
   });
 
   // socket.on("send voice message", async (data) => {
