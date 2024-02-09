@@ -282,9 +282,18 @@ app.post("/audio", upload.single("audio"), (req, res) => {
 
 io.on("connection", (socket) => {
   console.log("A user connected");
+  socket.on("join room", async (data) => {
+    socket.join(data.roomId);
+    const decodedToken = jwt.verify(data.token, "secretkeyappearshere");
+    socket.name = decodedToken.nickName;
+    console.log(
+      "---------------->join room io.sockets.adapter.rooms",
+      io.sockets.adapter.rooms
+    );
+  });
 
   socket.on("send message", async (data) => {
-    socket.join(data.roomId);
+    // !!!socket.join(data.roomId);
     const decodedToken = jwt.verify(data.token, "secretkeyappearshere");
     const user = await Users.findByPk(decodedToken.userId);
     const room = await Rooms.findByPk(data.roomId);
@@ -320,7 +329,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("get prev message", async ({ roomId }) => {
-    socket.join(roomId);
+    // !!!socket.join(roomId);
     const prevMessage = await Messages.findAll({
       where: {
         roomId: roomId,
@@ -342,28 +351,26 @@ io.on("connection", (socket) => {
   });
 
   socket.on("get rooms", async () => {
-    // socket.join("rooms");
+    socket.join("rooms");
     const rooms = await Rooms.findAll();
 
     if (rooms === undefined || rooms.length == 0) {
       io.emit("get rooms", "not have room");
       return;
     }
-    // io.to("rooms").emit("get rooms", rooms);
-    io.emit("get rooms", rooms);
+    io.to("rooms").emit("get rooms", rooms);
   });
 
   socket.on("add room", async (data) => {
-    // socket.join("rooms");
+    // !!!socket.join("rooms");
     const room = await Rooms.create({
       name: data.roomName,
     });
-    io.emit("add room", room);
-    // io.to("rooms").emit("get rooms", rooms);
+    io.to("rooms").emit("add room", room);
   });
 
   socket.on("get name room", async ({ roomId }) => {
-    socket.join(roomId);
+    // !!!socket.join(roomId);
 
     const room = await Rooms.findByPk(roomId);
 
@@ -377,20 +384,26 @@ io.on("connection", (socket) => {
   socket.on("get user in room", async (data) => {
     // console.log("---------------->data", data);
     // console.log("---------------->token", data.token);
-    const decodedToken = jwt.verify(data.token, "secretkeyappearshere");
+    // !!!!const decodedToken = jwt.verify(data.token, "secretkeyappearshere");
     // console.log("---------------->decodedToken", decodedToken);
     // console.log("---------------->roomId", data.roomId);
-    socket.join(data.roomId);
-    socket.name = decodedToken.nickName;
+    // !!!! socket.join(data.roomId);
+
+    // !!!socket.name = decodedToken.nickName;
     const users = [];
     // const rooms = io.sockets.adapter.rooms;
     // console.log(
     //   "---------------->io.sockets.adapter.rooms.get(roomId)",
     //   io.sockets.adapter.rooms.get(roomId)
     // );
-
+    console.log(
+      "---------------->io.sockets.adapter.rooms",
+      io.sockets.adapter.rooms
+    );
+    console.log("---------------->data.roomId", data.roomId);
     const usersSockets = [...io.sockets.adapter.rooms.get(data.roomId)];
-    console.log("---------------->usersSockets", usersSockets);
+
+    // console.log("---------------->usersSockets", usersSockets);
     // console.log(
     //   "---------------->io.sockets.adapter.nsp.sockets",
     //   io.sockets.adapter.nsp.sockets
@@ -457,13 +470,29 @@ io.on("connection", (socket) => {
   socket.on("user leave room", async (data) => {
     // console.log("---------------->data", data);
     // console.log("---------------->token", data.token);
-    const decodedToken = jwt.verify(data.token, "secretkeyappearshere");
+    // const decodedToken = jwt.verify(data.token, "secretkeyappearshere");
     // console.log("---------------->decodedToken", decodedToken);
     // console.log("---------------->roomId", data.roomId);
     // socket.join(data.roomId);
-    // socket.leave(data.roomId);
+    console.log(
+      "---------------->before leave io.sockets.adapter.rooms",
+      io.sockets.adapter.rooms
+    );
+    socket.leave(data.roomId);
     // socket.name = decodedToken.nickName;
     const users = [];
+    console.log(
+      "---------------->after leave io.sockets.adapter.rooms",
+      io.sockets.adapter.rooms
+    );
+    if (io.sockets.adapter.rooms.has(data.roomId)) {
+      const usersSockets = [...io.sockets.adapter.rooms.get(data.roomId)];
+      usersSockets.map((userSocket) =>
+        users.push(io.sockets.adapter.nsp.sockets.get(userSocket).name)
+      );
+    }
+    io.to(data.roomId).emit("get user in room", users);
+
     // console.log(
     //   "---------------->io.sockets.adapter.rooms",
     //   io.sockets.adapter.rooms
@@ -472,17 +501,22 @@ io.on("connection", (socket) => {
     // const mapUser = new Map(
     //   [...io.sockets.adapter.rooms].filter(([user]) => user !== data.roomId)
     // );
-    const usersSockets = [...io.sockets.adapter.rooms.get(data.roomId)].filter(
-      (socketId) => socketId !== socket.id
-    );
+
+    // !!!!
+    // const usersSockets = [...io.sockets.adapter.rooms.get(data.roomId)].filter(
+    //   (socketId) => socketId !== socket.id
+    // );
+
     // console.log(
     //   "---------------->io.sockets.adapter.nsp.sockets",
     //   io.sockets.adapter.nsp.sockets
     // );
 
-    usersSockets.map((userSocket) =>
-      users.push(io.sockets.adapter.nsp.sockets.get(userSocket).name)
-    );
+    // !!!!
+    // usersSockets.map((userSocket) =>
+    //   users.push(io.sockets.adapter.nsp.sockets.get(userSocket).name)
+    // );
+
     // for (let room of io.sockets.adapter.rooms.get(socket.id)) {
     //   // console.log(
     //   //   "---------------->io.sockets.adapter.nsp.sockets",
@@ -495,7 +529,7 @@ io.on("connection", (socket) => {
     //   users.push(io.sockets.adapter.nsp.sockets.get(room).name);
     // }
     // console.log("---------------->discont users", users);
-    io.to(data.roomId).emit("user leave room", users);
+    // !!!!io.to(data.roomId).emit("user leave room", users);
   });
 
   // socket.on("send voice message", async (data) => {
