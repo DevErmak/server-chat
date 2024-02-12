@@ -371,10 +371,10 @@ io.on("connection", (socket) => {
 
   socket.on("get name room", async ({ roomId }) => {
     // !!!socket.join(roomId);
-
+    console.log("---------------->roomId", roomId);
     const room = await Rooms.findByPk(roomId);
 
-    if (room === undefined || room.length == 0) {
+    if (room === undefined || room?.length == 0) {
       io.emit("get name room", "not have room");
       return;
     }
