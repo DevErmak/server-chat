@@ -184,22 +184,22 @@ app.post("/", async (req, res) => {
 //   res.json(rooms);
 // });
 
-app.post("/users", async (req, res) => {
-  console.log("---------------->aaa");
-  const decodedToken = jwt.verify(req.body.token, "secretkeyappearshere");
-  console.log("---------------->decodedToken", decodedToken);
-  await Users.findAll({
-    raw: true,
-    where: {
-      [Op.not]: { id: decodedToken.userId },
-    },
-  })
-    .then((users) => {
-      console.log(users);
-      res.json(users);
-    })
-    .catch((err) => console.log(err));
-});
+// app.post("/users", async (req, res) => {
+//   console.log("---------------->aaa");
+//   const decodedToken = jwt.verify(req.body.token, "secretkeyappearshere");
+//   console.log("---------------->decodedToken", decodedToken);
+//   await Users.findAll({
+//     raw: true,
+//     where: {
+//       [Op.not]: { id: decodedToken.userId },
+//     },
+//   })
+//     .then((users) => {
+//       console.log(users);
+//       res.json(users);
+//     })
+//     .catch((err) => console.log(err));
+// });
 
 // const storage = multer.diskStorage({
 //   destination: function (req, file, callback) {
@@ -218,67 +218,67 @@ app.post("/users", async (req, res) => {
 //     fileSize: 1048576, // Defined in bytes (1 Mb)
 //   },
 // });
-app.post("/audio", upload.single("audio"), (req, res) => {
-  console.log("---------------->req.body", req.body);
-  console.log("File:", req.file);
+// app.post("/audio", upload.single("audio"), (req, res) => {
+//   console.log("---------------->req.body", req.body);
+//   console.log("File:", req.file);
 
-  if (!req.file) {
-    return res.status(400).send("No file was uploaded.");
-  }
+//   if (!req.file) {
+//     return res.status(400).send("No file was uploaded.");
+//   }
 
-  // Доступ к данным файла
-  console.log("File:", req.file);
+//   // Доступ к данным файла
+//   console.log("File:", req.file);
 
-  // Возвращаем успешный ответ
-  res.send("File uploaded successfully.");
+//   // Возвращаем успешный ответ
+//   res.send("File uploaded successfully.");
 
-  // console.log("---------------->wqr");
-  // console.log(req.body);
-  // res.end();
-  // const form = new formidable.IncomingForm();
-  // form.parse(req, function (err, fields, files) {
-  //   let oldPath = files.profilePic.filepath;
-  //   let newPath = path.join(__dirname, "files") + "/" + files.profilePic.name;
-  //   console.log("---------------->newPath", newPath);
-  //   let rawData = fs.readFileSync(oldPath);
-  //   fs.writeFile(newPath, rawData, function (err) {
-  //     if (err) console.log(err);
-  //     return res.send("Successfully uploaded");
-  //   });
-  // });
-  // const form = new formidable.IncomingForm();
-  // form.parse(req, (err, fields, files) => {
-  //   console.log(
-  //     '---------------->__dirname + "/files/qwe.wav',
-  //     __dirname + "/files/qwe.wav"
-  //   );
-  //   if (err) {
-  //     console.log(err);
-  //     return res
-  //       .status(500)
-  //       .json({ error: "Произошла ошибка при загрузке файла" });
-  //   }
-  //   // Проверяем, что загруженный файл формата WAV
-  //   const uploadedFile = files.file;
-  //   if (uploadedFile && uploadedFile.type === "audio/wav") {
-  //     // Путь, куда сохранить файл на сервере
-  //     const filePath = __dirname + "/files/qwe.wav";
-  //     console.log("---------------->filePath", filePath);
-  //     // Перемещаем файл из временной папки в папку на сервере
-  //     fs.rename(uploadedFile.path, filePath, (err) => {
-  //       if (err) {
-  //         console.log(err);
-  //         return res
-  //           .status(500)
-  //           .json({ error: "Произошла ошибка при сохранении файла" });
-  //       }
-  //       return res.status(200).json({ message: "Файл успешно сохранен" });
-  //     });
-  //   } else {
-  //     return res.status(400).json({ error: "Некорректный формат файла" });
-  //   }
-  // });
-});
+//   // console.log("---------------->wqr");
+//   // console.log(req.body);
+//   // res.end();
+//   // const form = new formidable.IncomingForm();
+//   // form.parse(req, function (err, fields, files) {
+//   //   let oldPath = files.profilePic.filepath;
+//   //   let newPath = path.join(__dirname, "files") + "/" + files.profilePic.name;
+//   //   console.log("---------------->newPath", newPath);
+//   //   let rawData = fs.readFileSync(oldPath);
+//   //   fs.writeFile(newPath, rawData, function (err) {
+//   //     if (err) console.log(err);
+//   //     return res.send("Successfully uploaded");
+//   //   });
+//   // });
+//   // const form = new formidable.IncomingForm();
+//   // form.parse(req, (err, fields, files) => {
+//   //   console.log(
+//   //     '---------------->__dirname + "/files/qwe.wav',
+//   //     __dirname + "/files/qwe.wav"
+//   //   );
+//   //   if (err) {
+//   //     console.log(err);
+//   //     return res
+//   //       .status(500)
+//   //       .json({ error: "Произошла ошибка при загрузке файла" });
+//   //   }
+//   //   // Проверяем, что загруженный файл формата WAV
+//   //   const uploadedFile = files.file;
+//   //   if (uploadedFile && uploadedFile.type === "audio/wav") {
+//   //     // Путь, куда сохранить файл на сервере
+//   //     const filePath = __dirname + "/files/qwe.wav";
+//   //     console.log("---------------->filePath", filePath);
+//   //     // Перемещаем файл из временной папки в папку на сервере
+//   //     fs.rename(uploadedFile.path, filePath, (err) => {
+//   //       if (err) {
+//   //         console.log(err);
+//   //         return res
+//   //           .status(500)
+//   //           .json({ error: "Произошла ошибка при сохранении файла" });
+//   //       }
+//   //       return res.status(200).json({ message: "Файл успешно сохранен" });
+//   //     });
+//   //   } else {
+//   //     return res.status(400).json({ error: "Некорректный формат файла" });
+//   //   }
+//   // });
+// });
 
 io.on("connection", (socket) => {
   console.log("A user connected");
